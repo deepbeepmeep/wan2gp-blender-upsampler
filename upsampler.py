@@ -49,19 +49,20 @@ class TemporalBlendUpsampler(SimpleScaleSuffixMixin):
     @classmethod
     def query_temporal_upsampler_def(cls) -> dict[str, Any]:
         return {
-            "name": "Blender Upsampler",
+            "name": "Temporal Blend",
             "config_key": "blender_upsampler",
             "pos": 900,
             "method_pos": {cls.METHOD: 900},
-            "methods": [("Blend", cls.METHOD)],
+            "methods": [("Temporal Blend", cls.METHOD)],
             "multipliers": {cls.METHOD: cls.MULTIPLIERS},
-            "default_temporal_upsampling": "blend2",
+            "default_temporal_upsampling": "blend*2",
+            "description": "Fast model-free x2 interpolation that averages neighboring frames. It can reduce repeated-frame stutter, but moving subjects may show ghosting; it is primarily a reference and test method.",
         }
 
     def validate_upsampling(self, temporal_upsampling, *, source_is_image: bool = False) -> str:
         split = self.split_value(temporal_upsampling)
         if split is None or split[1] not in self.MULTIPLIERS:
-            return f"Blender Upsampler only supports {self.METHOD}2"
+            return "Temporal Blend only supports blend*2"
         return "Temporal Upsampling can not be used with an Image" if source_is_image else ""
 
     def download(self, process_files, send_cmd=None, status_text: str | None = None, temporal_upsampling=None) -> bool:
@@ -89,7 +90,7 @@ class TemporalBlendUpsampler(SimpleScaleSuffixMixin):
         if callable(abort_callback) and abort_callback():
             return sample, previous_last_frame, fps
         if callable(progress_callback):
-            progress_callback("Blender Upsampler", 0, 1)
+            progress_callback("Temporal Blend", 0, 1)
         next_previous_last_frame = sample[:, -1:].clone()
         if previous_last_frame is not None:
             sample = torch.cat([previous_last_frame, sample], dim=1)
@@ -99,5 +100,5 @@ class TemporalBlendUpsampler(SimpleScaleSuffixMixin):
         if callable(abort_callback) and abort_callback():
             return output, next_previous_last_frame, fps * 2
         if callable(progress_callback):
-            progress_callback("Blender Upsampler", 1, 1)
+            progress_callback("Temporal Blend", 1, 1)
         return output, next_previous_last_frame, fps * 2
